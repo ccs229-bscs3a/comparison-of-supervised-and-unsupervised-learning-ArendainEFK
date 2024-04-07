@@ -14,7 +14,7 @@ import time
 # Define the Streamlit app
 def app():
 
-    st.subheader('Supervised Learning, Classification, and KNN with Iris Dataset')
+    st.subheader('Supervised Learning, Classification, and KNN with Penguins Dataset')
     text = """**Supervised Learning:**
     \nSupervised learning is a branch of machine learning where algorithms learn from labeled data. 
     This data consists of input features (X) and corresponding outputs or labels (y). The algorithm learns a 
@@ -26,34 +26,15 @@ def app():
     point based on its features.
     \n**K-Nearest Neighbors (KNN):**
     KNN is a simple yet powerful algorithm for both classification and regression tasks. 
-    \n**The Iris Dataset:**
-    The Iris dataset is a popular benchmark dataset in machine learning. It contains information about 150 
-    iris flowers from three different species: Iris Setosa, Iris Versicolor, and Iris Virginica. 
-    Each flower is described by four features:
-    * Sepal length (cm)
-    * Sepal width (cm)
-    * Petal length (cm)
-    * Petal width (cm)
-    \n**KNN Classification with Iris:**
-    \n1. **Training:**
-    * The KNN algorithm stores the entire Iris dataset (features and labels) as its training data.
-    \n2. **Prediction:**
-    * When presented with a new iris flower (unknown species), KNN calculates the distance (often Euclidean distance) 
-    between this flower's features and all the flowers in the training data.
-    * The user defines the value of 'k' (number of nearest neighbors). KNN identifies the 'k' closest 
-    data points (flowers) in the training set to the new flower.
-    * KNN predicts the class label (species) for the new flower based on the majority vote among its 
-    'k' nearest neighbors. For example, if three out of the five nearest neighbors belong to Iris Setosa, 
-    the new flower is classified as Iris Setosa.
-    **Choosing 'k':**
-    The value of 'k' significantly impacts KNN performance. A small 'k' value might lead to overfitting, where the 
-    model performs well on the training data but poorly on unseen data. Conversely, a large 'k' value might not 
-    capture the local patterns in the data and lead to underfitting. The optimal 'k' value is often determined 
-    through experimentation.
-    \n**Advantages of KNN:**
-    * Simple to understand and implement.
-    * No complex model training required.
-    * Effective for datasets with well-defined clusters."""
+    \n**The Penguins Dataset:**
+    The Penguins dataset is a popular dataset in machine learning considered to be the new Iris. It contains information about 330 
+    penguins from three different species: Adelie, Gentoo, and Chinstrap. 
+    Each penguin is described by four features:
+    \n* Culmen length (mm)
+    \n* Culmen depgth (mm)
+    \n* Flipper length (mm)
+    \n* Body mass (g)"""
+
     st.write(text)
     k = st.sidebar.slider(
         label="Select the value of k:",
@@ -63,10 +44,12 @@ def app():
     )
 
     if st.button("Begin"):
-        # Load the Iris dataset
-        iris = datasets.load_iris()
-        X = iris.data  # Features
-        y = iris.target  # Target labels (species)
+        penguins_url = "https://raw.githubusercontent.com/dataprofessor/data/master/penguins_cleaned.csv"
+        penguins = pd.read_csv(penguins_url)
+
+        # Feature and target variable selection (assuming these column names)
+        X = penguins[['bill_length_mm', 'bill_depth_mm']]  # Features
+        y = penguins['species']  # Target label (species)
 
         # KNN for supervised classification (reference for comparison)
 
@@ -78,34 +61,46 @@ def app():
 
         # Predict the cluster labels for the data
         y_pred = knn.predict(X)
-        st.write('Confusion Matrix')
+
         cm = confusion_matrix(y, y_pred)
-        st.text(cm)
+        cm_df = pd.DataFrame(cm, index=penguins['species'].unique(), columns=penguins['species'].unique())
+
+        st.subheader('Confusion Matrix')
+        st.dataframe(cm_df)
+
+        st.subheader('Confusion Matrix Visualization')
+        plt.figure(figsize=(10, 8))
+        sns.heatmap(cm, annot=True, cmap='viridis', fmt='g', xticklabels=penguins['species'].unique(), yticklabels=penguins['species'].unique())
+        plt.xlabel('Predicted')
+        plt.ylabel('True')
+    
+    # Pass the figure to st.pyplot()
+        st.pyplot(plt.gcf())
+        # Performance Metrics
         st.subheader('Performance Metrics')
         st.text(classification_report(y, y_pred))
 
         # Get unique class labels and color map
-        unique_labels = list(set(y_pred))
+        unique_labels = penguins['species'].unique()  # Get unique target labels
         colors = plt.cm.get_cmap('viridis')(np.linspace(0, 1, len(unique_labels)))
 
         fig, ax = plt.subplots(figsize=(8, 6))
 
-        for label, color in zip(unique_labels, colors):
+        for label, color in zip(penguins['species'].unique(), colors):
             indices = y_pred == label
-            # Use ax.scatter for consistent plotting on the created axis
-            ax.scatter(X[indices, 0], X[indices, 1], label=iris.target_names[label], c=color)
+            # Filter the DataFrame directly to avoid mismatch with indices length
+            ax.scatter(X.loc[indices, 'bill_length_mm'], X.loc[indices, 'bill_depth_mm'], label=label, c=color)  # Use label directly
 
         # Add labels and title using ax methods
-        ax.set_xlabel('Sepal length (cm)')
-        ax.set_ylabel('Sepal width (cm)')
-        ax.set_title('Sepal Length vs Width Colored by Predicted Iris Species')
+        ax.set_xlabel('Bill Length (mm)')
+        ax.set_ylabel('Bill Depth (mm)')
+        ax.set_title('Bill Length vs Depth Colored by Predicted Species')
 
         # Add legend and grid using ax methods
         ax.legend()
         ax.grid(True)
         st.pyplot(fig)
 
-
-#run the app
+# Run the app
 if __name__ == "__main__":
     app()
